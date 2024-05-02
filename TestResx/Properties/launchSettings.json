@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TestResx": {
+      "commandName": "Project",
+      "commandLineArgs": "\"e:\\project_net\\TestResFolder\\SiteLicenseManager\"\r\n\"en-US\"\r\n\"uk-UA\""
+    }
+  }
+}
