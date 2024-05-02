@@ -1,5 +1,6 @@
 ﻿using DeepL;
 using Google.Cloud.Translation.V2;
+using HtmlAgilityPack;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,7 +11,6 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
 using System.Xml.Linq;
-
 
 namespace TranslateResx
 {
@@ -150,9 +150,57 @@ namespace TranslateResx
     public interface ITranslatorExtensions
     {
         string Translate(string textTranslate, string langFrom, string langTo);
+        string TranslateValue(string textTranslate, string langFrom, string langTo);
     }
 
-    public class TranslatorDeeplExtensions : ITranslatorExtensions
+    public abstract class TranslateExtensions : ITranslatorExtensions
+    {
+        internal bool IsHtml(string input)
+        {
+            var doc = new HtmlDocument();
+            doc.LoadHtml(input);
+
+            return doc.ParseErrors.Count() == 0 && doc.DocumentNode.DescendantsAndSelf().Any();
+        }
+
+        public string TranslateValue(string textTranslate, string langFrom, string langTo)
+        {
+            if (IsHtml(textTranslate))
+            {
+                var doc = new HtmlDocument();
+                doc.LoadHtml(textTranslate);
+                TranslateNodes(doc.DocumentNode, langFrom, langTo);
+                return doc.DocumentNode.OuterHtml;
+            }
+            else
+            {
+                return Translate(textTranslate, langFrom, langTo);
+            }
+        }
+
+        private void TranslateNodes(HtmlNode node, string langFrom, string langTo)
+        {
+            if (node.NodeType == HtmlNodeType.Text)
+            {
+                // Translate the text node
+                var from = LanguageCode.RemoveRegionalVariant(langFrom);
+                var to = LanguageCode.RemoveRegionalVariant(langTo);
+                var translatedText = Translate(node.InnerHtml, langFrom, langTo); 
+                node.InnerHtml = HttpUtility.HtmlEncode(translatedText);
+            }
+            else
+            {
+                foreach (var childNode in node.ChildNodes)
+                {
+                    TranslateNodes(childNode, langFrom, langTo);
+                }
+            }
+        }
+
+        public abstract string Translate(string textTranslate, string langFrom, string langTo);
+    }
+
+    public class TranslatorDeeplExtensions : TranslateExtensions, ITranslatorExtensions
     {
         private readonly Translator _translator;
 
@@ -161,7 +209,7 @@ namespace TranslateResx
             _translator = new Translator(authKey);
         }
 
-        public string Translate(string textTranslate, string langFrom, string langTo )
+        public override string Translate(string textTranslate, string langFrom, string langTo )
         {
             var from = LanguageCode.RemoveRegionalVariant(langFrom);
             var to = LanguageCode.RemoveRegionalVariant(langTo);
@@ -173,7 +221,7 @@ namespace TranslateResx
         }
     }
 
-    public class TranslatorGoogleExtensions : ITranslatorExtensions
+    public class TranslatorGoogleExtensions : TranslateExtensions, ITranslatorExtensions
     {
         private readonly TranslationClient _client;
 
@@ -182,7 +230,7 @@ namespace TranslateResx
             _client = TranslationClient.CreateFromApiKey(apiKey);
         }
 
-        public string Translate(string textTranslate, string langFrom, string langTo)
+        public override string Translate(string textTranslate, string langFrom, string langTo)
         {
             var response = _client.TranslateText(
                 text: textTranslate,

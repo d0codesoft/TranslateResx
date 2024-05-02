@@ -62,7 +62,7 @@ foreach (var resxFile in resxFiles)
     using (var resxReader = new LanguageReaderExtensions(resxFile))
     using (var resxWriter = new LanguageWriterExtensions(newNames))
     {
-        var keys = resxReader.GetResourceKeys();
+        var keys = resxReader.GetResourceKeys().Where(e=>e.Type=="System.String").ToList();
         foreach (var key in keys)
         {
             Console.WriteLine($"    Translate key: {key.Key} {key.Type}");
