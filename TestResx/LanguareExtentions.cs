@@ -1,4 +1,5 @@
 ﻿using DeepL;
+using Google.Cloud.Translation.V2;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,6 +8,7 @@ using System.Resources.NetStandard;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 using System.Xml.Linq;
 
 
@@ -145,11 +147,16 @@ namespace TranslateResx
         }
     }
 
-    public class TranslatorExtensions
+    public interface ITranslatorExtensions
+    {
+        string Translate(string textTranslate, string langFrom, string langTo);
+    }
+
+    public class TranslatorDeeplExtensions : ITranslatorExtensions
     {
         private readonly Translator _translator;
 
-        public TranslatorExtensions(string authKey)
+        public TranslatorDeeplExtensions(string authKey)
         {
             _translator = new Translator(authKey);
         }
@@ -163,6 +170,25 @@ namespace TranslateResx
                   from,
                   to).Result;
             return translatedText.Text;
+        }
+    }
+
+    public class TranslatorGoogleExtensions : ITranslatorExtensions
+    {
+        private readonly TranslationClient _client;
+
+        public TranslatorGoogleExtensions(string apiKey)
+        {
+            _client = TranslationClient.CreateFromApiKey(apiKey);
+        }
+
+        public string Translate(string textTranslate, string langFrom, string langTo)
+        {
+            var response = _client.TranslateText(
+                text: textTranslate,
+                targetLanguage: langTo,
+                sourceLanguage: langFrom);
+            return response.TranslatedText;
         }
     }
 }

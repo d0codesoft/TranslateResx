@@ -6,24 +6,44 @@ using System.Resources.NetStandard;
 using System.Xml.Linq;
 using TranslateResx;
 
-Console.WriteLine("Start translator resource");
+Console.WriteLine("TranslateResx");
 
 if (args.Length < 3)
 {
-    Console.WriteLine("Usage: Translator <Folder path> <Code lang from ('en-US','uk-UA')> <Code lang to ('en-US','uk-UA')>");
-    return;
-}
-
-var variableValue = Environment.GetEnvironmentVariable("DEPL_KEY_API");
-if (string.IsNullOrEmpty(variableValue))
-{
-    Console.WriteLine("Environment variable DEPL_KEY_API not found, create Environment variable 'DEPL_KEY_API'");
+    Console.WriteLine("Usage: Translator <Folder path> <Code lang from ('en-US','uk-UA')> <Code lang to ('en-US','uk-UA')> <Type service 'google','deepl'>");
+    Console.WriteLine("Example: Translator ./resx en-US uk-UA deepl");
     return;
 }
 
 string resxFolderPath = args[0];
 string langFrom = args[1];
 string langTo = args[2];
+string typeService = args[2];
+
+string variableValue = string.Empty;
+if (typeService == "deepl")
+{
+    variableValue = Environment.GetEnvironmentVariable("DEPL_KEY_API");
+    if (string.IsNullOrEmpty(variableValue))
+    {
+        Console.WriteLine("Environment variable DEPL_KEY_API not found, create Environment variable 'DEPL_KEY_API'");
+        return;
+    }
+}
+else if (typeService == "google")
+{
+    variableValue = Environment.GetEnvironmentVariable("GOOGLE_CLOUD_KEY_API");
+    if (string.IsNullOrEmpty(variableValue))
+    {
+        Console.WriteLine("Environment variable GOOGLE_CLOUD_KEY_API not found, create Environment variable 'GOOGLE_CLOUD_KEY_API'");
+        return;
+    }
+}
+else
+{
+    Console.WriteLine("Type service not found");
+    return;
+}
 
 var resxFiles = LanguageReaderExtensions.FindResxFiles(resxFolderPath, langFrom);
 if (resxFiles == null)
@@ -32,7 +52,7 @@ if (resxFiles == null)
     return;
 }
 
-var translator = new TranslatorExtensions(variableValue);
+var translator = new TranslatorDeeplExtensions(variableValue);
 
 foreach (var resxFile in resxFiles)
 {
